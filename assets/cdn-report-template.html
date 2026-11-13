@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TARGET}} — CDN 供应商定位报告</title>
+<style>
+:root { --bg:#f8f9fa; --text:#1f2933; --primary:#4a90d9; --border:#e5e7eb; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif; line-height:1.55; }
+.wrap { max-width:980px; margin:24px auto 64px; padding:0 16px; }
+header.card { background:linear-gradient(135deg,#4a90d9,#357abd); color:#fff; padding:28px 32px; border-radius:12px; }
+header.card h1 { margin:0 0 8px; font-size:24px; }
+header.card p { margin:0; opacity:.95; }
+h2 { margin-top:36px; font-size:20px; }
+table { width:100%; border-collapse:collapse; background:#fff; }
+th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; vertical-align:top; }
+tr:nth-child(even) { background:#f3f6f9; }
+.tag { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; margin:2px 4px 2px 0; }
+.tag-blue { background:#dbeafe; color:#1e40af; } .tag-orange { background:#ffedd5; color:#9a3412; }
+.tag-green { background:#dcfce7; color:#166534; } .tag-red { background:#fee2e2; color:#991b1b; }
+.tag-purple { background:#f3e8ff; color:#6b21a8; } .tag-gray { background:#e5e7eb; color:#374151; }
+.summary-box,.warn-box { background:#fff; padding:12px 16px; margin:12px 0; border-radius:8px; }
+.summary-box { border-left:4px solid var(--primary); } .warn-box { border-left:4px solid #f59e0b; }
+.check { color:#16a34a; } .cross { color:#dc2626; }
+.code-block { background:#1f2937; color:#e5e7eb; padding:12px 16px; border-radius:8px; overflow-x:auto; font-family:"SF Mono",Menlo,Consolas,monospace; font-size:13px; }
+.mono { font-family:"SF Mono",Menlo,Consolas,monospace; }
+footer { margin-top:48px; color:#6b7280; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="card">
+  <h1>{{TARGET}} CDN 供应商定位报告</h1>
+  <p>目标：<span class="mono">{{URL}}</span>&nbsp;|&nbsp;证据级别：<b>{{证据级别：仅静态 / 含流媒体验证}}</b>&nbsp;|&nbsp;重放状态：<b>未执行</b>（{{原因：鉴权为服务端下发，无前端算法可还原 / 无需}}）</p>
+</header>
+
+<h2>结论速览</h2>
+<div class="summary-box">
+<p><b>直播流分发 = {{厂商}}；主站 = {{厂商}}；静态资源 = {{厂商}}。</b></p>
+<p>{{一句话提醒：主站 CDN ≠ 视频 CDN 的说明 / 借网关系的说明，若适用}}</p>
+</div>
+
+<table>
+<tr><th>层级</th><th>域名</th><th>供应商</th><th>关键证据</th></tr>
+<tr><td><span class="tag tag-orange">主站/页面加速</span></td><td class="mono">{{主站域名}}</td><td><b>{{厂商}}</b></td><td>{{cf-ray / CNAME / ASN 等实测数据}}</td></tr>
+<tr><td><span class="tag tag-blue">图片/静态</span></td><td class="mono">{{静态域名}}</td><td><b>{{厂商}}</b></td><td>{{签名URL特征 / 响应头}}</td></tr>
+<tr><td><span class="tag tag-green">直播流分发（核心）</span></td><td class="mono">{{拉流域名}}</td><td><b>{{厂商}}</b></td><td>{{CNAME 指纹域 / 响应头 / ASN / 自述字段}}</td></tr>
+<tr><td><span class="tag tag-purple">边缘承载网络</span></td><td class="mono">{{边缘 IP}}</td><td>{{自营 / 借网方}}</td><td>{{ASN + AS 名（cymru 实测行）}}</td></tr>
+</table>
+
+<h2>四证交叉表</h2>
+<table>
+<tr><th>证据源</th><th>实测结果</th><th>指向</th></tr>
+<tr><td>① 域名指纹（CNAME 链）</td><td class="mono">{{dig +short 完整链，逐跳}}</td><td>{{厂商/指纹域}}</td></tr>
+<tr><td>② 响应头指纹</td><td class="mono">{{真实响应头关键行}}</td><td>{{厂商}}</td></tr>
+<tr><td>③ IP/ASN 归属</td><td class="mono">{{cymru 一行输出}}</td><td>{{自营/借网说明}}</td></tr>
+<tr><td>④ 内部自述</td><td class="mono">{{EXT-X-SESSION-DATA / token 载荷 / 错误 JSON}}</td><td>{{集群/区域/账号}}</td></tr>
+</table>
+
+<h2>取证过程（九步走查）</h2>
+<table>
+<tr><th>步骤</th><th>结果</th></tr>
+<tr><td>① 直连抓页面</td><td>{{HTTP code / server / 框架特征}}</td></tr>
+<tr><td>② 定位播放地址</td><td>{{内联数据 / 接口 / 播放器配置 + 完整 URL（含鉴权参数）}}</td></tr>
+<tr><td>③ 提取流媒体域名</td><td class="mono">{{host}}</td></tr>
+<tr><td>④ CNAME 链 + NS 反查</td><td class="mono">{{链 + NS 归属}}</td></tr>
+<tr><td>⑤ 响应头指纹</td><td class="mono">{{关键头}}</td></tr>
+<tr><td>⑥ 拉流验证</td><td><span class="check">主清单 HTTP {{code}}</span> / 子清单 <span class="check">HTTP {{code}}</span></td></tr>
+<tr><td>⑦ IP/ASN 归属</td><td class="mono">{{ASN 行}}</td></tr>
+<tr><td>⑧ 内部自述</td><td class="mono">{{集群/转码栈/token 载荷}}</td></tr>
+<tr><td>⑨ 分层定论</td><td>见结论速览</td></tr>
+</table>
+
+<h2>鉴权观察（如顺手发现）</h2>
+<table>
+<tr><th>项</th><th>实测</th></tr>
+<tr><td>鉴权方式</td><td class="mono">{{auth_key TypeA / auth_info 加密串 / IVS JWT}}</td></tr>
+<tr><td>验证样例</td><td>{{裸 URL → <span class="cross">403</span>；完整参数 → <span class="check">200</span>；过期时间戳行为…}}</td></tr>
+<tr><td>强度分级</td><td><span class="tag tag-green">强 / tag-orange 中 / tag-red 弱</span> —— {{伪造难度/时效/绑定粒度/CORS}}</td></tr>
+</table>
+
+<div class="warn-box"><p>注：{{未做项：TS 分片未下载（判定 CDN 无需）；代理出口说明；GSLB 就近调度视角说明}}</p></div>
+
+<footer>
+对象：{{URL}} ｜ 时间：{{YYYY-MM-DD HH:MM UTC+8}} ｜ 工具：curl / dig / whois(cymru) / python3 ｜ 产物：work/{{site}}/{assets,api}/<br>
+仅用于技术研究与学习目的
+</footer>
+
+</div>
+</body>
+</html>
